@@ -1,49 +1,31 @@
 #!/bin/bash
 
-# Build the Docker image
+# Set up ECR repository path
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export AWS_REGION=us-west-2
+export ECR_REPO=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/advanced-rag-mloeks/eks-rag
+
+# Get ECR login token
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+# Build and push the image
 echo "Building Docker image..."
-docker build -t advanced-rag-mloeks/eks-rag:latest .
+docker build -t $ECR_REPO:latest .
 
-# Save the image
-echo "Saving Docker image..."
-docker save advanced-rag-mloeks/eks-rag:latest > eks-rag.tar
+echo "Pushing image to ECR..."
+docker push $ECR_REPO:latest
 
-# Get external IP addresses of the nodes
-NODES=$(kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="ExternalIP")].address}')
-
-# Copy and load image to each node
-for node in $NODES
-do
-    echo "Processing node: $node"
-    echo "Copying image to node..."
-    scp -i /path/to/your/key.pem eks-rag.tar ec2-user@$node:~
-    
-    echo "Loading image on node..."
-    ssh -i /path/to/your/key.pem ec2-user@$node "docker load < eks-rag.tar"
-done
-
-# Clean up the tar file
-echo "Cleaning up..."
-rm eks-rag.tar
-
-# Update deployment.yaml to use the correct image name
-sed -i 's/image: .*/image: advanced-rag-mloeks\/eks-rag:latest/' deployment.yaml
-
-# Deploy to Kubernetes
+# Process template and deploy
 echo "Deploying to Kubernetes..."
-kubectl apply -f deployment.yaml
+envsubst < deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 
-# Wait for deployment to be ready
-echo "Waiting for deployment to be ready..."
-kubectl wait --for=condition=available --timeout=300s deployment/eks-rag
+# Wait for deployment
+echo "Waiting for deployment..."
+kubectl rollout status deployment/eks-rag --timeout=300s
 
 # Show status
-echo "Deployment status:"
+echo "Checking deployment status..."
 kubectl get deployments
-echo "Pod status:"
 kubectl get pods
-echo "Service status:"
 kubectl get services
-
-echo "Deployment complete!"

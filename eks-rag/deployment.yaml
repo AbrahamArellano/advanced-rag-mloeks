@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: eks-rag   # Changed from rag-skeleton
+  name: eks-rag
   labels:
-    app: eks-rag  # Changed to match
+    app: eks-rag
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: eks-rag  # Changed to match
+      app: eks-rag
   template:
     metadata:
       labels:
-        app: eks-rag  # Changed to match
+        app: eks-rag
     spec:
       containers:
-      - name: eks-rag  # Changed from rag-skeleton
-        image: advanced-rag-mloeks/eks-rag:latest
-        imagePullPolicy: Never  # This is important for using local images
+      - name: eks-rag
+        image: ${ECR_REPO}:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         resources:
