@@ -47,26 +47,11 @@ except Exception as e:
 # Constants
 EMBEDDING_MODEL_ID = "cohere.embed-english-v3"
 
-def check_model_availability():
-    """Check if the specified model is available for use"""
-    try:
-        if not bedrock:
-            logger.error("Bedrock client not initialized")
-            return False
-            
-        response = bedrock.list_foundation_models()
-        available_models = [model.get('modelId') for model in response.get('modelSummaries', [])]
-        
-        if EMBEDDING_MODEL_ID not in available_models:
-            logger.error(f"Model {EMBEDDING_MODEL_ID} not found in available models")
-            logger.info(f"Available models: {available_models}")
-            return False
-            
-        return True
-    except Exception as e:
-        logger.error(f"Error checking model availability: {e}")
-        return False
 
+
+#
+# Generate Embeddings
+#
 def generate_embedding(text):
     """Generate embeddings for the provided text using Bedrock"""
     if not text or not isinstance(text, str):
@@ -148,30 +133,58 @@ def generate_embedding(text):
         logger.error(traceback.format_exc())
         return None
 
+#
+# Main submit orchestration method
+#
 @app.route('/submit_query', methods=['POST'])
 def submit_query():
     start_time = time.time()
     logger.info("Received submit_query request")
     
     try:
+        # Step 1: Get and validate query
         data = request.json
         if not data or 'query' not in data:
             return jsonify({"error": "Missing query parameter"}), 400
 
         query = data['query']
-        logger.info(f"Processing query: {query[:50]}...")
+        logger.info(f"Step 1 - Processing query: {query[:50]}...")
         
-        # Generate embedding
+        # Step 2: Generate embeddings using Bedrock
+        logger.info("Step 2 - Generating embeddings...")
         embedding = generate_embedding(query)
         if embedding is None:
             return jsonify({"error": "Failed to generate embedding"}), 500
+        
+        # Step 3: Vector search (placeholder for now)
+        logger.info("Step 3 - Vector search placeholder...")
+        similar_docs = {
+            "status": "not implemented yet",
+            "message": "Vector search will be implemented in next iteration"
+        }
+        
+        # Step 4: LLM Processing (placeholder for now)
+        logger.info("Step 4 - LLM processing placeholder...")
+        llm_response = {
+            "status": "not implemented yet",
+            "message": "LLM processing will be implemented in next iteration"
+        }
 
         total_time = time.time() - start_time
         
-        # Return limited response (embedding vectors can be large)
+        # Return comprehensive response
         return jsonify({
-            "query": query[:100] + ("..." if len(query) > 100 else ""),
-            "embedding_dimension": len(embedding),
+            "status": "partial_implementation",
+            "query": query,
+            "steps_completed": {
+                "embedding_generation": {
+                    "status": "success",
+                    "dimension": len(embedding),
+                    "model_used": EMBEDDING_MODEL_ID
+                },
+                "vector_search": similar_docs,
+                "llm_processing": llm_response
+            },
             "processing_time_seconds": total_time
         }), 200
 
@@ -179,8 +192,15 @@ def submit_query():
         logger.error(f"Unexpected error in submit_query: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
-
+        return jsonify({
+            "error": str(e),
+            "step": "query_processing",
+            "details": traceback.format_exc()
+        }), 500
+        
+#
+# Health check method
+#
 @app.route('/health', methods=['GET'])
 def health_check():
     health_status = {
@@ -233,6 +253,9 @@ def health_check():
     health_status["status"] = "healthy"
     return jsonify(health_status), 200
 
+#
+# Test embedding
+#
 @app.route('/test_embedding', methods=['GET'])
 def test_embedding():
     """Simple endpoint to test embedding generation with a fixed input"""
@@ -258,6 +281,30 @@ def test_embedding():
             "status": "error",
             "message": str(e)
         }), 500
+        
+#
+# Test - check model availability
+#
+def check_model_availability():
+    """Check if the specified model is available for use"""
+    try:
+        if not bedrock:
+            logger.error("Bedrock client not initialized")
+            return False
+            
+        response = bedrock.list_foundation_models()
+        available_models = [model.get('modelId') for model in response.get('modelSummaries', [])]
+        
+        if EMBEDDING_MODEL_ID not in available_models:
+            logger.error(f"Model {EMBEDDING_MODEL_ID} not found in available models")
+            logger.info(f"Available models: {available_models}")
+            return False
+            
+        return True
+    except Exception as e:
+        logger.error(f"Error checking model availability: {e}")
+        return False
+        
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
