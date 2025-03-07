@@ -14,6 +14,7 @@ spec:
       labels:
         app: eks-rag
     spec:
+      serviceAccountName: eks-rag-sa
       containers:
       - name: eks-rag
         image: ${ECR_REPO}:latest
