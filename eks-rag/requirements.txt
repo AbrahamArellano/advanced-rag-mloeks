@@ -1,4 +1,6 @@
 Flask==2.0.1
 gunicorn==20.1.0
-boto3>=1.28.0  # Added for AWS SDK
-Werkzeug==2.0.3  # Keep this for Flask compatibility
+Werkzeug==2.0.3
+boto3>=1.28.0
+opensearch-py==2.0.0
+requests-aws4auth>=1.1.1
