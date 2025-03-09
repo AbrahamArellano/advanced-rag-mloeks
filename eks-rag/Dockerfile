@@ -27,4 +27,4 @@ USER appuser
 
 EXPOSE 5000
 
-CMD ["gunicorn", "--timeout", "120", "--workers", "2", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "--timeout", "120", "--workers", "2", "--bind", "0.0.0.0:5000", "vector_search_service:app"]
