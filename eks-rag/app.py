@@ -62,6 +62,7 @@ try:
             http_auth=awsauth,
             use_ssl=True,
             verify_certs=True,
+            timeout=30,
             connection_class=RequestsHttpConnection
         )
         logger.info("OpenSearch client initialized successfully")
@@ -82,6 +83,8 @@ def generate_embedding(text):
         )
         embedding = json.loads(response['body'].read())['embeddings'][0]
         logger.info(f"Generated embedding with dimension: {len(embedding)}")
+        logger.info(f"Generated embedding type: {type(embedding)}")
+        logger.info(f"First few values of embedding: {embedding[:5]}")
         return embedding
     except Exception as e:
         logger.error(f"Error generating embedding: {e}")
@@ -92,6 +95,7 @@ def vector_search(embedding, k=5):
     try:
         search_query = {
             "size": k,
+            "_source": ["message", "service", "error_code"],
             "query": {
                 "knn": {
                     "message_embedding": {
@@ -101,6 +105,8 @@ def vector_search(embedding, k=5):
                 }
             }
         }
+        
+        logger.info(f"Executing vector search with query: {json.dumps(search_query, indent=2)}")
         
         response = opensearch_client.search(
             index='error-logs-mock',
@@ -124,7 +130,10 @@ def vector_search(embedding, k=5):
         return results
     except Exception as e:
         logger.error(f"Error in vector search: {e}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error(f"Error details: {str(e)}")
         return None
+
 
 @app.route('/submit_query', methods=['POST'])
 def submit_query():

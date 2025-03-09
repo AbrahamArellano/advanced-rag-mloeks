@@ -49,11 +49,15 @@ def create_index_mapping(client, index_name):
                     "type": "knn_vector",
                     "dimension": 1024,
                     "method": {
-                        "name": "hnsw",
-                        "space_type": "cosinesimil",
-                        "engine": "nmslib"
+                        "engine": "faiss",
+                        "name": "hnsw"
                     }
                 }
+            }
+        },
+        "settings": {
+            "index": {
+                "knn": True
             }
         }
     }
@@ -101,6 +105,15 @@ def get_collection_endpoint(client, collection_name):
     print(f"Found endpoint: {endpoint}")
     return endpoint.replace('https://', '')
 
+def delete_index_if_exists(client, index_name):
+    try:
+        if client.indices.exists(index=index_name):
+            print(f"Deleting existing index {index_name}...")
+            client.indices.delete(index=index_name)
+            print(f"Index {index_name} deleted successfully")
+    except Exception as e:
+        print(f"Error deleting index: {e}")
+
 def main():
     try:
         # Initialize clients
@@ -114,14 +127,13 @@ def main():
         # Initialize OpenSearch client
         os_client = get_opensearch_client(collection_endpoint)
         
-        # Create index mapping
+        # Delete existing index if it exists
         index_name = 'error-logs-mock'
-        try:
-            create_index_mapping(os_client, index_name)
-        except Exception as e:
-            if 'resource_already_exists_exception' not in str(e):
-                raise
-            print(f"Index {index_name} already exists")
+        delete_index_if_exists(os_client, index_name)
+        
+        # Create new index with correct mapping
+        print(f"Creating new index {index_name} with updated mapping...")
+        create_index_mapping(os_client, index_name)
         
         # Load error logs
         with open('error_logs.json', 'r') as f:
@@ -148,6 +160,11 @@ def main():
                     print(f"Error indexing log: {e}")
         
         print(f"\nIndexing complete. Successfully indexed {successful_indexes} out of {len(logs)} logs")
+
+        # Verify the index was created with correct mapping
+        print("\nVerifying index mapping:")
+        mapping = os_client.indices.get_mapping(index=index_name)
+        print(json.dumps(mapping, indent=2))
 
     except Exception as e:
         print(f"Error in main: {str(e)}")
