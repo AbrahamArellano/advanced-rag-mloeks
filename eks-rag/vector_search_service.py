@@ -47,7 +47,7 @@ try:
         endpoint = collection_details['collectionDetails'][0]['collectionEndpoint']
         endpoint = endpoint.replace('https://', '')
         
-        # Create OpenSearch client
+        # Get credentials
         credentials = boto3.Session().get_credentials()
         awsauth = AWS4Auth(
             credentials.access_key,
@@ -57,12 +57,15 @@ try:
             session_token=credentials.token
         )
         
+        # Create OpenSearch client
         opensearch_client = OpenSearch(
             hosts=[{'host': endpoint, 'port': 443}],
             http_auth=awsauth,
             use_ssl=True,
             verify_certs=True,
             timeout=30,
+            retry_on_timeout=True,
+            max_retries=3,
             connection_class=RequestsHttpConnection
         )
         logger.info("OpenSearch client initialized successfully")
@@ -133,7 +136,6 @@ def vector_search(embedding, k=5):
         logger.error(f"Error type: {type(e)}")
         logger.error(f"Error details: {str(e)}")
         return None
-
 
 @app.route('/submit_query', methods=['POST'])
 def submit_query():

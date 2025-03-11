@@ -10,15 +10,27 @@ echo "Deleting Kubernetes deployment..."
 kubectl delete deployment eks-rag --ignore-not-found
 
 # Delete ECR images
-echo "Deleting ECR images..."
+echo "Checking ECR repository..."
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 AWS_REGION=us-west-2
 REPO_NAME=advanced-rag-mloeks/eks-rag
 
-# Delete all images in the repository
-aws ecr batch-delete-image \
-    --repository-name $REPO_NAME \
-    --image-ids $(aws ecr list-images --repository-name $REPO_NAME --query 'imageIds[*]' --output json) \
-    || echo "No images to delete or repository not found."
+# Check if repository exists
+if aws ecr describe-repositories --repository-names $REPO_NAME 2>/dev/null; then
+    echo "Found ECR repository, deleting images..."
+    # Get list of image IDs
+    IMAGE_IDS=$(aws ecr list-images --repository-name $REPO_NAME --query 'imageIds[*]' --output json)
+    
+    if [ "$IMAGE_IDS" != "[]" ] && [ "$IMAGE_IDS" != "" ]; then
+        echo "Deleting images..."
+        aws ecr batch-delete-image \
+            --repository-name $REPO_NAME \
+            --image-ids "$IMAGE_IDS"
+    else
+        echo "No images found in repository"
+    fi
+else
+    echo "ECR repository does not exist, skipping image cleanup"
+fi
 
 echo "Cleanup complete!"

@@ -5,6 +5,13 @@ export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output tex
 export AWS_REGION=us-west-2
 export ECR_REPO=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/advanced-rag-mloeks/eks-rag
 
+# Create ECR repository if it doesn't exist
+echo "Checking ECR repository..."
+if ! aws ecr describe-repositories --repository-names advanced-rag-mloeks/eks-rag 2>/dev/null; then
+    echo "Creating ECR repository..."
+    aws ecr create-repository --repository-name advanced-rag-mloeks/eks-rag
+fi
+
 # Get ECR login token
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
