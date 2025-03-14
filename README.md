@@ -24,7 +24,7 @@ The solution leverages the following AWS services and technologies:
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
 - [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli)
-- [Docker] (https://docs.docker.com/engine/install/) (for building and pushing container images) 
+- [Docker](https://docs.docker.com/engine/install/) {for building and pushing container images}
 
 ## Deployment instructions
 
