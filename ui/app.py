@@ -1,8 +1,9 @@
+import pprint
 import gradio as gr
 import requests
 import json
-import sseclient
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -12,7 +13,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-RAG_SERVICE_URL = "http://eks-rag-service/submit_query"
+RAG_SERVICE_URL = f"http://{os.environ.get('RAG_SERVICE_HOST', 'eks-rag-service')}/submit_query"
 
 
 # Send query to RAG service
@@ -35,20 +36,25 @@ def send_query(query):
                                  stream=True)
         response.raise_for_status()
         
-        client = sseclient.SSEClient(response)
-        
+        # Process the streaming response
         full_response = ""
-        for event in client.events():
-            if event.data != "[DONE]":
+        for line in response.iter_lines():
+            if line:
+                # Decode the line and remove "data: " prefix if present
+                decoded_line = line.decode('utf-8')
+                if decoded_line.startswith("data: "):
+                    decoded_line = decoded_line[6:]
+                
                 try:
-                    decoded_data = json.loads(event.data)
-                    chunk = decoded_data['choices'][0]['delta'].get('content', '')
-                    full_response += chunk
-                    yield full_response
+                    # Parse the JSON response
+                    json_response = json.loads(decoded_line)
+                    # Extract and append the LLM response
+                    if 'llm_response' in json_response:
+                        full_response += json_response['llm_response']
                 except json.JSONDecodeError:
-                    continue
-        
-        logger.info("Query completed successfully")
+                    # If not JSON, append the raw text
+                    full_response += decoded_line
+                
         return full_response
     
     except requests.RequestException as e:
@@ -58,9 +64,9 @@ def send_query(query):
 
 # Default prompts for testing
 default_prompts = [
-    "What are the user authentication failed errors?",
-    "Show me the payment transaction failed errors",
-    "Show me the timeout errors",
+    "Are there any vehicles reporting engine temperatures above 110°C in the last hour? If yes, what immediate actions should be taken based on the sensor readings and diagnostic codes?",
+    "Show me any vehicles with battery voltage below 11.5V that are currently in MOVING state. What should be communicated to the drivers?",
+    "Are there any vehicles showing transmission failure codes P0700 in the last 30 minutes?",
 ]
 
 iface = gr.Interface(

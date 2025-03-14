@@ -17,6 +17,10 @@ spec:
         image: 818655384876.dkr.ecr.us-west-2.amazonaws.com/advanced-rag-mloeks/ui:latest
         ports:
         - containerPort: 7860
+        env:
+          # Update this if host name changes or need to point to an ALB
+          - name: RAG_SERVICE_HOST
+            value: eks-rag-service
         readinessProbe:
           httpGet:
             path: /
