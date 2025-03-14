@@ -8,7 +8,7 @@ This repository contains the infrastructure and application code for deploying a
 
 The solution leverages the following AWS services and technologies:
 
-- Amazon EKS: Hosts the Mistral LLM model
+- Amazon EKS: Hosts the Llama3 LLM model
 - vLLM and Ray: Used for efficient inference
 - Amazon OpenSearch Serverless: Stores vector embeddings of user queries and real-time input data
 - AWS Lambda: Generates random timestamped logs
