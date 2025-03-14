@@ -48,6 +48,7 @@ aws eks --region us-west-2 describe-cluster --name trainium-inferentia
 
 ```
 aws eks --region us-west-2 update-kubeconfig --name trainium-inferentia
+
 kubectl get nodes # Output shows the EKS Managed Node group nodes
 ```
 
@@ -61,7 +62,6 @@ export HUGGING_FACE_HUB_TOKEN=<Your-Hugging-Face-Hub-Token-Value>
 cd gen-ai/inference/vllm-rayserve-inf2
 
 envsubst < vllm-rayserve-deployment.yaml| kubectl apply -f -
-
 ```
 5. Verify the deployment by running the following commands
 
@@ -85,7 +85,64 @@ NAME                                 SERVICE STATUS   NUM SERVE ENDPOINTS
 rayservice.ray.io/vllm-llama3-inf2   Running          2
 ```
 
-### Step 2: Deploy Lambda function for generating logs
-### Step 3: Deploy Amazon MSK cluster for streaming logs into
+### Step 2: Deploy Amazon MSK cluster for streaming logs into
+
+First, we need to grab the VPC and private subnet IDs created in the previous step.
+
+Get the VPC ID
+```
+export VPC_ID=`aws ec2 describe-vpcs --filters Name=tag:Name,Values=trainium-inferentia --region us-west-2 --query 'Vpcs[*].VpcId' --output text`
+```
+
+Get the private subnets
+```
+export SUBNET_ID1=`aws ec2 describe-subnets --filter Name=cidr-block,Values=10.1.0.0/24 Name=vpc-id,Values=$VPC_ID --region us-west-2 --query Subnets[*].SubnetId --output text`
+
+export SUBNET_ID2=`aws ec2 describe-subnets --filter Name=cidr-block,Values=10.1.1.0/24 Name=vpc-id,Values=$VPC_ID --region us-west-2 --query Subnets[*].SubnetId --output text`
+```
+
+Create MSK cluster
+```
+#create serverless collection config JSON
+cat << EOF > kafka-config.json
+{
+  "VpcConfigs": [
+    {
+      "SubnetIds": ["$SUBNET_ID1","$SUBNET_ID2"],
+      "SecurityGroupIds": ["$SECURITY_GROUP_ID"]
+    }
+  ],
+  "ClientAuthentication":{
+    "Sasl":{
+      "Iam":{
+        "Enabled": true
+      }
+    }
+  }
+}
+EOF
+
+aws kafka create-cluster-v2 --cluster-name mycluster --serverless file://kafka-config.json --region us-west-2
+```
+
+
+### Step 3: Deploy Lambda function for generating logs
 ### Step 4: Deploy RAG service to generate embeddings for user queries and timestamped logs, and run inference against deployed LLM
 ### Step 5: Deploy application UI
+
+## Cleanup
+Finally, here are the instructions for cleaning up and deprovisioning the resources when they are no longer needed.
+
+### Delete the RayCluster
+```
+cd data-on-eks/gen-ai/inference/vllm-rayserve-inf2
+
+kubectl delete -f vllm-rayserve-deployment.yaml
+```
+
+### Destroy the EKS Cluster
+```
+cd data-on-eks/ai-ml/trainium-inferentia/
+
+./cleanup.sh
+```
