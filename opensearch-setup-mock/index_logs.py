@@ -1,3 +1,4 @@
+# index_logs.py
 import json
 import boto3
 from opensearchpy import OpenSearch, RequestsHttpConnection
@@ -11,7 +12,7 @@ def get_opensearch_client(collection_endpoint):
         credentials.access_key,
         credentials.secret_key,
         region,
-        'aoss',  # Use 'aoss' for OpenSearch Serverless
+        'aoss',
         session_token=credentials.token
     )
     
@@ -35,17 +36,46 @@ def create_index_mapping(client, index_name):
                 "service": {"type": "keyword"},
                 "error_code": {"type": "keyword"},
                 "message": {"type": "text"},
-                "stack_trace": {"type": "text"},
-                "correlation_id": {"type": "keyword"},
-                "user_id": {"type": "keyword"},
+                "vehicle_id": {"type": "keyword"},
+                "vehicle_state": {"type": "keyword"},
+                "location": {
+                    "properties": {
+                        "latitude": {"type": "float"},
+                        "longitude": {"type": "float"}
+                    }
+                },
+                "sensor_readings": {
+                    "properties": {
+                        "engine_temp": {"type": "float"},
+                        "battery_voltage": {"type": "float"},
+                        "fuel_pressure": {"type": "float"},
+                        "speed": {"type": "float"},
+                        "battery_level": {"type": "float"}
+                    }
+                },
+                "diagnostic_info": {
+                    "properties": {
+                        "dtc_codes": {"type": "keyword"},
+                        "system_status": {"type": "keyword"},
+                        "last_maintenance": {"type": "date"}
+                    }
+                },
                 "metadata": {
                     "properties": {
                         "environment": {"type": "keyword"},
                         "region": {"type": "keyword"},
-                        "version": {"type": "keyword"}
+                        "firmware_version": {"type": "keyword"}
                     }
                 },
                 "message_embedding": {
+                    "type": "knn_vector",
+                    "dimension": 1024,
+                    "method": {
+                        "engine": "faiss",
+                        "name": "hnsw"
+                    }
+                },
+                "diagnostic_embedding": {
                     "type": "knn_vector",
                     "dimension": 1024,
                     "method": {
@@ -81,6 +111,10 @@ def generate_embedding(bedrock, text):
     except Exception as e:
         print(f"Error generating embedding: {e}")
         return None
+
+def prepare_diagnostic_text(diagnostic_info):
+    dtc_codes = ' '.join(diagnostic_info.get('dtc_codes', []))
+    return f"System Status: {diagnostic_info.get('system_status', '')} DTC Codes: {dtc_codes}"
 
 def get_collection_endpoint(client, collection_name):
     print(f"Getting endpoint for collection {collection_name}...")
@@ -144,17 +178,21 @@ def main():
         successful_indexes = 0
         
         for log in logs:
-            embedding = generate_embedding(bedrock, log['message'])
-            if embedding:
-                log['message_embedding'] = embedding
+            # Generate embeddings for message and diagnostic info
+            message_embedding = generate_embedding(bedrock, log['message'])
+            diagnostic_text = prepare_diagnostic_text(log['diagnostic_info'])
+            diagnostic_embedding = generate_embedding(bedrock, diagnostic_text)
+            
+            if message_embedding and diagnostic_embedding:
+                log['message_embedding'] = message_embedding
+                log['diagnostic_embedding'] = diagnostic_embedding
                 try:
-                    # Remove id parameter, let OpenSearch generate it
                     os_client.index(
                         index=index_name,
                         body=log
                     )
                     successful_indexes += 1
-                    if successful_indexes % 10 == 0:  # Progress update every 10 documents
+                    if successful_indexes % 10 == 0:
                         print(f"Successfully indexed {successful_indexes} documents...")
                 except Exception as e:
                     print(f"Error indexing log: {e}")

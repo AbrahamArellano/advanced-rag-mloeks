@@ -6,7 +6,6 @@ from opensearchpy import __versionstr__
 
 print(f"OpenSearch Python client version: {__versionstr__}")
 
-
 def get_opensearch_client(collection_endpoint):
     credentials = boto3.Session().get_credentials()
     region = 'us-west-2'
@@ -30,7 +29,6 @@ def get_opensearch_client(collection_endpoint):
     
     return client
 
-# Main test function
 def main():
     collection_endpoint = 'ptd7yjca8ylq619uzv9e.us-west-2.aoss.amazonaws.com'
     client = get_opensearch_client(collection_endpoint)
@@ -48,20 +46,19 @@ def main():
     print(json.dumps(client.count(index='error-logs-mock'), indent=2))
     
     # Test 4: Basic search with limited output
-    print("\n4 - Basic search for 'timeout' (showing first 3 results):")
+    print("\n4 - Basic search for 'engine temperature' (showing first 3 results):")
     search_response = client.search(
         index='error-logs-mock',
         body={
-            "size": 3,  # Limit to 3 results
+            "size": 3,
             "query": {
                 "match": {
-                    "message": "timeout"
+                    "message": "engine temperature"
                 }
             }
         }
     )
     
-    # Format the output to be more concise
     formatted_response = {
         "total_hits": search_response["hits"]["total"]["value"],
         "max_score": search_response["hits"]["max_score"],
@@ -73,13 +70,13 @@ def main():
     
     # Test 5: Vector search
     print("\n5 - Vector search test:")
-    test_embedding = get_test_embedding()
+    test_embedding = get_test_embedding("engine malfunction high temperature")
     if test_embedding:
         vector_search_response = client.search(
             index='error-logs-mock',
             body={
                 "size": 5,
-                "_source": ["message", "service", "error_code"],
+                "_source": ["message", "service", "error_code", "vehicle_id", "sensor_readings"],
                 "query": {
                     "knn": {
                         "message_embedding": {
@@ -91,8 +88,8 @@ def main():
             }
         )
         print(json.dumps(vector_search_response, indent=2))
-        
-def get_test_embedding(text="timeout error occurred"):
+
+def get_test_embedding(text="engine malfunction high temperature"):
     """Generate a real embedding for testing"""
     try:
         bedrock = boto3.client('bedrock-runtime', region_name='us-west-2')
@@ -109,15 +106,17 @@ def get_test_embedding(text="timeout error occurred"):
     except Exception as e:
         print(f"Error generating test embedding: {e}")
         return None
-    
+
 def format_search_hit(hit):
-    """Format a search hit to show only relevant fields"""
+    """Format a search hit to show IoT vehicle fields"""
     return {
         "score": hit["_score"],
         "message": hit["_source"]["message"],
         "service": hit["_source"]["service"],
         "error_code": hit["_source"]["error_code"],
-        "timestamp": hit["_source"]["timestamp"]
+        "timestamp": hit["_source"]["timestamp"],
+        "vehicle_id": hit["_source"].get("vehicle_id", "N/A"),
+        "sensor_readings": hit["_source"].get("sensor_readings", {})
     }
 
 if __name__ == "__main__":

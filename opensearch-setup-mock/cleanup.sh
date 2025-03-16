@@ -16,15 +16,14 @@ AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 AWS_REGION=us-west-2
 REPO_NAME=advanced-rag-mloeks/eks-rag
 
-# Check if repository exists (with output suppressed)
-if aws ecr describe-repositories --repository-names $REPO_NAME &>/dev/null; then
+# Check if repository exists
+if aws ecr describe-repositories --repository-names $REPO_NAME 2>/dev/null; then
     echo "Found ECR repository, deleting images..."
-    # Get list of image IDs (with output suppressed)
     IMAGE_IDS=$(aws ecr list-images --repository-name $REPO_NAME --query 'imageIds[*]' --output json)
     
     if [ "$IMAGE_IDS" != "[]" ] && [ "$IMAGE_IDS" != "" ]; then
         echo "Deleting images..."
-        aws ecr batch-delete-image --repository-name $REPO_NAME --image-ids "$IMAGE_IDS" &>/dev/null && echo "Images deleted successfully"
+        aws ecr batch-delete-image --repository-name $REPO_NAME --image-ids "$IMAGE_IDS"
     else
         echo "No images found in repository"
     fi

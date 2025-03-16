@@ -21,6 +21,11 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
+        env:
+        - name: VLLM_HOST
+          value: "vllm-llama3-inf2-serve-svc.vllm.svc.cluster.local"
+        - name: VLLM_PORT
+          value: "8000"
         resources:
           requests:
             cpu: 100m
@@ -42,4 +47,3 @@ spec:
           initialDelaySeconds: 60  
           timeoutSeconds: 10      
           periodSeconds: 20       
-

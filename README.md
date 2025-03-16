@@ -128,6 +128,73 @@ aws kafka create-cluster-v2 --cluster-name mycluster --serverless file://kafka-c
 
 ### Step 3: Deploy Lambda function for generating logs
 ### Step 4: Deploy RAG service to generate embeddings for user queries and timestamped logs, and run inference against deployed LLM
+
+The RAG service handles vector embeddings generation, semantic search, and LLM inference orchestration.
+
+Clone the RAG service repository
+
+```    
+git clone https://github.com/your-repo/advanced-rag-mloeks.git
+cd advanced-rag-mloeks/opensearch-setup-mock
+```
+    
+Set up OpenSearch Serverless collection and policies
+
+```    
+python3 setup_opensearch.py
+```
+    
+Generate and index initial logs with embeddings
+
+``` 
+python3 generate_logs.py
+python3 index_logs.py
+```
+    
+Deploy the RAG service to EKS
+```
+# Create kubernetes deployment
+kubectl apply -f deployment.yaml
+```
+
+```
+# Create kubernetes service
+kubectl apply -f service.yaml
+```
+
+```
+# Create network policy to allow access to vLLM
+kubectl apply -f network-policy.yaml
+```
+    
+Verify the deployment
+
+```    
+# Check if pods are running
+kubectl get pods
+```
+
+```
+# Check if service is created
+kubectl get service eks-rag-service
+```
+```
+# Test the service
+export SERVICE_IP=$(kubectl get service eks-rag-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+```
+```
+# Test with a sample query
+curl -X POST \
+  http://$SERVICE_IP/submit_query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Show critical engine temperature alerts"}' | json_pp
+```
+    
+
+
+
+
+
 ### Step 5: Deploy application UI
 
 ## Cleanup
