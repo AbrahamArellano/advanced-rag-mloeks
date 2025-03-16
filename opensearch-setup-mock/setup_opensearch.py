@@ -27,10 +27,8 @@ def create_encryption_policy(client, collection_name):
         print(f"Error creating encryption policy: {e}")
         return False
 
-
 def create_collection(client, collection_name):
     try:
-        # Create VECTORSEARCH collection (required for embeddings)
         response = client.create_collection(
             name=collection_name,
             description='Error logs for RAG demo with vector search',
@@ -38,7 +36,6 @@ def create_collection(client, collection_name):
         )
         print(f"Creating collection: {collection_name}")
         
-        # Wait for collection to be active
         print("Waiting for collection to be active...")
         while True:
             collections = client.list_collections(
@@ -58,26 +55,71 @@ def create_collection(client, collection_name):
 
 def create_access_policy(client, collection_name):
     try:
-        # Get current identity
-        sts = boto3.client('sts')
-        identity = sts.get_caller_identity()
-        current_identity = identity['Arn']
-        
-        policy_document = [{
-            "Rules": [
-                {
-                    "ResourceType": "index",
-                    "Resource": [f"index/{collection_name}/*"],
-                    "Permission": ["aoss:*"]
-                },
-                {
-                    "ResourceType": "collection",
-                    "Resource": [f"collection/{collection_name}"],
-                    "Permission": ["aoss:*"]
-                }
-            ],
-            "Principal": [current_identity]
-        }]
+        policy_document = [
+            {
+                "Rules": [
+                    {
+                        "Resource": [f"collection/{collection_name}"],
+                        "Permission": [
+                            "aoss:CreateCollectionItems",
+                            "aoss:DeleteCollectionItems",
+                            "aoss:UpdateCollectionItems",
+                            "aoss:DescribeCollectionItems"
+                        ],
+                        "ResourceType": "collection"
+                    },
+                    {
+                        "Resource": [f"index/{collection_name}/*"],
+                        "Permission": [
+                            "aoss:CreateIndex",
+                            "aoss:DeleteIndex",
+                            "aoss:UpdateIndex",
+                            "aoss:DescribeIndex",
+                            "aoss:ReadDocument",
+                            "aoss:WriteDocument"
+                        ],
+                        "ResourceType": "index"
+                    }
+                ],
+                "Principal": [
+                    "arn:aws:iam::818655384876:role/eksctl-trainium-inferentia-addon-iamserviceac-Role1-GvKbkjiT1mz5",
+                    "arn:aws:sts::818655384876:assumed-role/random-log-generator-role-e4ouc4h5/random-log-consumer",
+                    "arn:aws:iam::818655384876:role/Admin"
+                ]
+            },
+            {
+                "Rules": [
+                    {
+                        "Resource": [f"collection/{collection_name}"],
+                        "Permission": [
+                            "aoss:CreateCollectionItems",
+                            "aoss:DeleteCollectionItems",
+                            "aoss:UpdateCollectionItems",
+                            "aoss:DescribeCollectionItems"
+                        ],
+                        "ResourceType": "collection"
+                    },
+                    {
+                        "Resource": [f"index/{collection_name}/*"],
+                        "Permission": [
+                            "aoss:CreateIndex",
+                            "aoss:DeleteIndex",
+                            "aoss:UpdateIndex",
+                            "aoss:DescribeIndex",
+                            "aoss:ReadDocument",
+                            "aoss:WriteDocument"
+                        ],
+                        "ResourceType": "index"
+                    }
+                ],
+                "Principal": [
+                    "arn:aws:sts::818655384876:assumed-role/random-log-generator-role-e4ouc4h5/random-log-consumer",
+                    "arn:aws:iam::818655384876:role/service-role/random-log-generator-role-e4ouc4h5",
+                    "arn:aws:iam::818655384876:role/Admin"
+                ],
+                "Description": "AWS Lambda Access"
+            }
+        ]
         
         client.create_access_policy(
             name=f"{collection_name}-access",
@@ -93,15 +135,17 @@ def create_access_policy(client, collection_name):
 
 def create_network_policy(client, collection_name):
     try:
-        policy_document = [{
-            "Rules": [
-                {
-                    "ResourceType": "collection",
-                    "Resource": [f"collection/{collection_name}"]
-                }
-            ],
-            "AllowFromPublic": True
-        }]
+        policy_document = [
+            {
+                "Rules": [
+                    {
+                        "Resource": [f"collection/{collection_name}"],
+                        "ResourceType": "collection"
+                    }
+                ],
+                "AllowFromPublic": True
+            }
+        ]
         
         client.create_security_policy(
             name=f"{collection_name}-network",
@@ -117,25 +161,20 @@ def create_network_policy(client, collection_name):
 
 def main():
     try:
-        # Initialize AWS client
         client = boto3.client('opensearchserverless')
         collection_name = 'error-logs-mock'
         
         print(f"\nStarting setup for collection: {collection_name}")
         
-        # Create encryption policy first
         if not create_encryption_policy(client, collection_name):
             raise Exception("Failed to create encryption policy")
         
-        # Create collection
         if not create_collection(client, collection_name):
             raise Exception("Failed to create collection")
         
-        # Create network policy
         if not create_network_policy(client, collection_name):
             raise Exception("Failed to create network policy")
         
-        # Create access policy
         if not create_access_policy(client, collection_name):
             raise Exception("Failed to create access policy")
         
