@@ -2,6 +2,10 @@
 
 ## Overview
 
+> [!CAUTION]
+> This is an experimental solution to demonstrate the pattern. Do not use it in production. Deploying this will incur AWS charges.
+
+
 This repository contains the infrastructure and application code for deploying a real-time AI chat and analytics platform on AWS. The solution enables users to interact with a Generative AI interface, asking questions and deriving insights from real-time streaming data such as vehicle sensor data and machine IoT data.
 
 ## Architecture
