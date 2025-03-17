@@ -197,8 +197,29 @@ curl -X POST \
 
 ### Step 5: Deploy application UI
 
+To deploy the sample Gradio UI appliction, deploy the provided `ui/deployment.yaml`
+
+```sh
+kubectl apply -f ui/deployment.yaml
+```
+
+This will create AWS Load Balancer for ingress.
+
+```sh
+kubectl get ingress gradio-app-ingress
+```
+Open the ADDRESS in a web browser to open the UI.
+
+
+
 ## Cleanup
 Finally, here are the instructions for cleaning up and deprovisioning the resources when they are no longer needed.
+
+### Delete the UI
+
+```sh
+kubectl delete -f ui/deployment.yaml
+```
 
 ### Delete the RayCluster
 ```
