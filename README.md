@@ -135,9 +135,7 @@ EOF
 aws kafka create-cluster-v2 --cluster-name mycluster --serverless file://kafka-config.json --region us-west-2
 ```
 
-
-### Step 3: Deploy Lambda function for generating logs
-### Step 4: Deploy RAG service to generate embeddings for user queries and timestamped logs, and run inference against deployed LLM
+### Step 3: Deploy RAG service to generate embeddings for user queries and timestamped logs, and run inference against deployed LLM
 
 The RAG service handles vector embeddings generation, semantic search, and LLM inference orchestration.
 
@@ -147,7 +145,7 @@ Clone the RAG service repository
 git clone https://github.com/your-repo/advanced-rag-mloeks.git
 cd advanced-rag-mloeks/opensearch-setup-mock
 ```
-    
+
 Set up OpenSearch Serverless collection and policies
 
 ```    
@@ -200,7 +198,9 @@ curl -X POST \
   -d '{"query": "Show critical engine temperature alerts"}' | json_pp
 ```
 
-### Step 5: Deploy application UI
+> ![NOTE]: For production use cases, we recommend using sophisticated consumers in Lambda function to consume logs from the Kafka cluster and then store embeddings in an Opensearch serverless collection. Sample code for a consumer Lambda is available at opensearch-setup/consume_logs.py.
+
+### Step 4: Deploy application UI
 
 To deploy the sample Gradio UI appliction, deploy the provided `ui/deployment.yaml`
 
