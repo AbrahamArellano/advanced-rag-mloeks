@@ -197,7 +197,7 @@ curl -X POST \
   -d '{"query": "Show critical engine temperature alerts"}' | json_pp
 ```
 
-> [!NOTE]: For production use cases, we recommend using sophisticated consumers in Lambda function to consume logs from the Kafka cluster and then store embeddings in an Opensearch serverless collection. Sample code for a consumer Lambda is available at opensearch-setup/consume_logs.py.
+> For production use cases, we recommend using sophisticated consumers in Lambda function to consume logs from the Kafka cluster and then store embeddings in an Opensearch serverless collection. Sample code for a consumer Lambda is available at opensearch-setup/consume_logs.py.
 
 ### Step 4: Deploy application UI
 
