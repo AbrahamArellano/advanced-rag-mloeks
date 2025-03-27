@@ -34,9 +34,8 @@ The solution leverages the following AWS services and technologies:
 
 - [Step 1: Deploy Amazon EKS cluster to host the LLM](#step-1-deploy-amazon-eks-cluster-to-host-the-llm)
 - [Step 2: Deploy Amazon MSK cluster for streaming logs into](#step-2-deploy-amazon-msk-cluster-for-streaming-logs-into)
-- [Step 3: Deploy Lambda function for generating logs](#step-3-deploy-lambda-function-for-generating-logs)
-- [Step 4: Deploy RAG service to generate embeddings for user queries and timestamped logs, and run inference against deployed LLM](#step-4-deploy-rag-service-to-generate-embeddings-for-user-queries-and-timestamped-logs-and-run-inference-against-deployed-llm)
-- [Step 5: Deploy application UI](#step-5-deploy-application-ui)
+- [Step 3: Deploy RAG service to generate embeddings for user queries and timestamped logs, and run inference against deployed LLM](#step-3-deploy-rag-service-to-generate-embeddings-for-user-queries-and-timestamped-logs-and-run-inference-against-deployed-llm)
+- [Step 4: Deploy application UI](#step-4-deploy-application-ui)
 
 ### Step 1: Deploy Amazon EKS cluster to host the LLM
 
@@ -198,7 +197,7 @@ curl -X POST \
   -d '{"query": "Show critical engine temperature alerts"}' | json_pp
 ```
 
-> ![NOTE]: For production use cases, we recommend using sophisticated consumers in Lambda function to consume logs from the Kafka cluster and then store embeddings in an Opensearch serverless collection. Sample code for a consumer Lambda is available at opensearch-setup/consume_logs.py.
+> [!NOTE]: For production use cases, we recommend using sophisticated consumers in Lambda function to consume logs from the Kafka cluster and then store embeddings in an Opensearch serverless collection. Sample code for a consumer Lambda is available at opensearch-setup/consume_logs.py.
 
 ### Step 4: Deploy application UI
 
